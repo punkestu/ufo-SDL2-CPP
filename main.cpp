@@ -11,11 +11,11 @@ public:
     ufo(){
         body[0] = {220,240,40,10};
         body[1] = {body[0].x+10, body[0].y-10, 20,10};
-        moveX = moveY = 0;
+        movD[0] = movD[1] = movD[2] = movD[3] = 0;
     }
 
     void control(SDL_Event* event){
-        if(event->type = SDL_KEYDOWN){
+        if(event->type == SDL_KEYDOWN){
             if(event->key.keysym.sym == SDLK_a){
                 movD[0] = 1;
             }
@@ -29,7 +29,7 @@ public:
                 movD[3] = 1;
             }
         }
-        if(event->type = SDL_KEYUP){
+        if(event->type == SDL_KEYUP){
             if(event->key.keysym.sym == SDLK_a){
                 movD[0] = 0;
             }
@@ -46,7 +46,19 @@ public:
     }
 
     void update(){
-
+        if(movD[0]){
+            body[0].x-=2;
+        }
+        if(movD[1]){
+            body[0].x+=2;
+        }
+        if(movD[2]){
+            body[0].y-=2;
+        }
+        if(movD[3]){
+            body[0].y+=2;
+        }
+        body[1] = {body[0].x+10, body[0].y-10, 20,10};
     }
 
     void render(SDL_Renderer* renderer){
@@ -63,6 +75,7 @@ int main(int argc, char* argv[])
     ufo mufo = ufo();
 
     SDL_Event event;
+    int frame = SDL_GetTicks();
     while(true){
         SDL_SetRenderDrawColor(renderer, 0,0,0,255);
         SDL_RenderClear(renderer);
@@ -73,7 +86,12 @@ int main(int argc, char* argv[])
         if(event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)){
             break;
         }
+        mufo.control(&event);
 
+        if(SDL_GetTicks()-frame >= 1000/60){
+            frame = SDL_GetTicks();
+            mufo.update();
+        }
 
         SDL_RenderPresent(renderer);
     }
