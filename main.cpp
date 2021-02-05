@@ -118,31 +118,59 @@ public:
         return 0;
     }
     SDL_Rect* getBody(){return &body[0];}
+    bool getBeam(){return beam;}
 };
 
 class cow{
-
+private:
+    SDL_Rect body[4];
+public:
+    cow(){
+        body[0] = {20,480-15,20,10};
+        body[1] = {20,480-5,5,5};
+        body[2] = {35,480-5,5,5};
+        body[3] = {35,480-25,12,12};
+    }
+    void movX(short dir, int spd){
+        body[0].x+=dir*spd;
+        body[1].x+=dir*spd;
+        body[2].x+=dir*spd;
+        body[3].x+=dir*spd;
+    }
+    void movY(short dir, int spd){
+        body[0].y+=dir*spd;
+        body[1].y+=dir*spd;
+        body[2].y+=dir*spd;
+        body[3].y+=dir*spd;
+    }
+    void render(SDL_Renderer* renderer){
+        SDL_SetRenderDrawColor(renderer,255,255,255,255);
+        SDL_RenderFillRects(renderer, body, 4);
+    }
 };
 
 class camera{
 private:
     ufo* mufo;
     //std::vector<cow*>* cows;
+    cow* mcow;
     SDL_Rect* ground;
 public:
-    camera(ufo* mufo, SDL_Rect* ground){
+    camera(ufo* mufo, cow* mcow, SDL_Rect* ground){
         this->mufo = mufo;
-        //this->cows = cows;
+        this->mcow = mcow;
         this->ground = ground;
     }
 
     void movX(short dir, int spd){
         mufo->movX(-dir, spd);
+        mcow->movX(-dir, spd);
         //ground->x+=(-dir)*spd;
     }
     void movY(short dir, int spd){
         mufo->movY(-dir, spd);
         ground->y+=(-dir)*spd;
+        mcow->movY(-dir, spd);
     }
     void update(){
         movX(mufo->getMovX(),2);
@@ -155,10 +183,11 @@ int main(int argc, char* argv[])
     SDL_Window* window = SDL_CreateWindow("apps", 100,100,480,480,false);
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
 
-    SDL_Rect ground = {0,440,480,40};
+    SDL_Rect ground = {0,480,480,40};
     ufo mufo = ufo(&ground);
+    cow cow1 = cow();
 
-    camera mcamera = camera(&mufo, &ground);
+    camera mcamera = camera(&mufo,&cow1,&ground);
 
     SDL_Event event;
     int frame = SDL_GetTicks();
@@ -170,6 +199,7 @@ int main(int argc, char* argv[])
         if(!dead){
             mufo.render(renderer);
         }
+        cow1.render(renderer);
         SDL_SetRenderDrawColor(renderer, 255,255,255,255);
         SDL_RenderFillRect(renderer, &ground);
 
@@ -186,6 +216,7 @@ int main(int argc, char* argv[])
                 mufo.update();
                 ground.h=480-ground.y;
             }
+
         }else{
             if(event.type == SDL_KEYDOWN && (event.key.keysym.sym == SDLK_RETURN || event.key.keysym.sym == SDLK_RETURN2)){
                 break;
