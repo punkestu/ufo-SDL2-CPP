@@ -76,22 +76,22 @@ public:
         body[1] = {body[0].x+10, body[0].y-10, 20,10};
         if(movD[0]){
             body[1].x=body[0].x+5;
-            movX(-1, 2);
+            movX(-1, 1);
             wind[0] = {body[1].x + body[1].w + 5, body[1].y, 10, 5};
             wind[1] = {body[0].x + body[0].w + 5, body[0].y, 10, 5};
         }
         if(movD[1]){
             body[1].x=body[0].x+15;
-            movX(1,2);
+            movX(1,1);
             wind[0] = {body[1].x - 15, body[1].y, 10, 5};
             wind[1] = {body[0].x - 15, body[0].y, 10, 5};
         }
         if(movD[2]){
-            movY(-1,2);
+            movY(-1,1);
         }
         if(movD[3]){
             body[1].h = 15;
-            movY(1,2);
+            movY(1,1);
         }
         if(beam){
             light = 480-(body[0].y+body[0].h)+20;
@@ -125,11 +125,11 @@ class cow{
 private:
     SDL_Rect body[4];
 public:
-    cow(){
-        body[0] = {20,480-15,20,10};
-        body[1] = {20,480-5,5,5};
-        body[2] = {35,480-5,5,5};
-        body[3] = {35,480-25,12,12};
+    cow(int pos){
+        body[0] = {pos+20,480-15,20,10};
+        body[1] = {pos+20,480-5,5,5};
+        body[2] = {pos+35,480-5,5,5};
+        body[3] = {pos+35,480-25,12,12};
     }
     void movX(short dir, int spd){
         body[0].x+=dir*spd;
@@ -147,34 +147,39 @@ public:
         SDL_SetRenderDrawColor(renderer,255,255,255,255);
         SDL_RenderFillRects(renderer, body, 4);
     }
+    SDL_Rect getBody(){return {body[0].x,body[3].y,27,25};}
 };
 
 class camera{
 private:
     ufo* mufo;
-    //std::vector<cow*>* cows;
-    cow* mcow;
+    std::vector<cow*>* cows;
+    //cow* mcow;
     SDL_Rect* ground;
 public:
-    camera(ufo* mufo, cow* mcow, SDL_Rect* ground){
+    camera(ufo* mufo, std::vector<cow*>* cows, SDL_Rect* ground){
         this->mufo = mufo;
-        this->mcow = mcow;
+        this->cows = cows;
         this->ground = ground;
     }
 
     void movX(short dir, int spd){
         mufo->movX(-dir, spd);
-        mcow->movX(-dir, spd);
+        for(unsigned int i = 0; i < cows->size(); i++){
+            (*cows)[i]->movX(-dir, spd);
+        }
         //ground->x+=(-dir)*spd;
     }
     void movY(short dir, int spd){
         mufo->movY(-dir, spd);
         ground->y+=(-dir)*spd;
-        mcow->movY(-dir, spd);
+        for(unsigned int i = 0; i < cows->size(); i++){
+            (*cows)[i]->movY(-dir, spd);
+        }
     }
     void update(){
-        movX(mufo->getMovX(),2);
-        movY(mufo->getMovY(),2);
+        movX(mufo->getMovX(),1);
+        movY(mufo->getMovY(),1);
     }
 };
 
@@ -185,9 +190,12 @@ int main(int argc, char* argv[])
 
     SDL_Rect ground = {0,480,480,40};
     ufo mufo = ufo(&ground);
-    cow cow1 = cow();
+    std::vector<cow*> cows;
+    cows.push_back(new cow(20));
+    cows.push_back(new cow(40));
+    cows.push_back(new cow(180));
 
-    camera mcamera = camera(&mufo,&cow1,&ground);
+    camera mcamera = camera(&mufo,&cows,&ground);
 
     SDL_Event event;
     int frame = SDL_GetTicks();
@@ -199,7 +207,12 @@ int main(int argc, char* argv[])
         if(!dead){
             mufo.render(renderer);
         }
-        cow1.render(renderer);
+//        SDL_SetRenderDrawColor(renderer, 255,0,0,255);
+//        SDL_Rect temp = cow1.getBody();
+//        SDL_RenderFillRect(renderer, &temp);
+        for(unsigned int i = 0; i < cows.size(); i++){
+            cows[i]->render(renderer);
+        }
         SDL_SetRenderDrawColor(renderer, 255,255,255,255);
         SDL_RenderFillRect(renderer, &ground);
 
@@ -215,6 +228,27 @@ int main(int argc, char* argv[])
                 mcamera.update();
                 mufo.update();
                 ground.h=480-ground.y;
+                for(std::vector<cow*>::iterator it = cows.begin(); it != cows.end(); it++){
+                    if((*it)->getBody().x<mufo.getBody()->x+mufo.getBody()->w && (*it)->getBody().x+(*it)->getBody().w>mufo.getBody()->x &&
+                       (*it)->getBody().y<mufo.getBody()->y+mufo.getBody()->h && (*it)->getBody().y+(*it)->getBody().h>mufo.getBody()->y){
+                            cows.erase(it);
+                            it--;
+                            continue;
+                       }
+                    if(mufo.getBeam()){
+                        if((*it)->getBody().x<mufo.getBody()->x+mufo.getBody()->w && (*it)->getBody().x+(*it)->getBody().w>mufo.getBody()->x){
+                            (*it)->movY(-1,1);
+                        }else{
+                            if((*it)->getBody().y+(*it)->getBody().h<ground.y){
+                                (*it)->movY(1,1);
+                            }
+                        }
+                    }else{
+                        if((*it)->getBody().y+(*it)->getBody().h<ground.y){
+                            (*it)->movY(1,1);
+                        }
+                    }
+                }
             }
 
         }else{
